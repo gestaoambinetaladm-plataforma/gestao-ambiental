@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, FileText,
-  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil,
+  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil, FileDown,
 } from 'lucide-react'
 import EditProjectModal from './EditProjectModal'
 import { formatDate } from '@/lib/format'
@@ -91,17 +91,31 @@ export default function ProjectDetail({ project, condicionantes: initialConds, c
         }}>
           <ArrowLeft size={15} /> Voltar para projetos
         </button>
-        <button
-          onClick={() => setEditModal(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-            background: '#fff', border: '1px solid var(--n200)',
-            color: 'var(--n700)', cursor: 'pointer',
-          }}
-        >
-          <Pencil size={14} /> Editar projeto
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a
+            href={`/api/reports/project/${project.id}`}
+            download
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              background: '#fff', border: '1px solid var(--n200)',
+              color: 'var(--n700)', cursor: 'pointer', textDecoration: 'none',
+            }}
+          >
+            <FileDown size={14} /> Baixar PDF
+          </a>
+          <button
+            onClick={() => setEditModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              background: '#fff', border: '1px solid var(--n200)',
+              color: 'var(--n700)', cursor: 'pointer',
+            }}
+          >
+            <Pencil size={14} /> Editar projeto
+          </button>
+        </div>
       </div>
 
       {/* Header */}

@@ -49,6 +49,24 @@ export async function createClientAction(formData: FormData) {
   return { success: true, id: data.id }
 }
 
+export async function generatePortalTokenAction(clientId: string) {
+  const profile = await getCurrentUserData()
+  if (!profile) return { error: 'Não autorizado' }
+
+  const token = crypto.randomUUID()
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('clients')
+    .update({ portal_token: token })
+    .eq('id', clientId)
+    .eq('organization_id', profile.organization_id)
+
+  if (error) return { error: 'Erro ao gerar token.' }
+
+  revalidatePath(`/clients/${clientId}`)
+  return { success: true, token }
+}
+
 export async function updateClientAction(id: string, formData: FormData) {
   const profile = await getCurrentUserData()
   if (!profile) return { error: 'Não autorizado' }

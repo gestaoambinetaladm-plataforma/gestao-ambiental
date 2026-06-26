@@ -1,11 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
 import {
-  ArrowLeft, Building2, User, Phone, Mail,
-  MapPin, FileText, FolderOpen, Edit2,
+  ArrowLeft, Phone, Mail,
+  MapPin, FileText, FolderOpen, Share2, Check, Loader2,
 } from 'lucide-react'
 import { formatDocument, formatPhone, formatDate } from '@/lib/format'
+import { generatePortalTokenAction } from '@/lib/clients/actions'
 import type { Client, Project } from '@/types'
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
@@ -25,11 +27,35 @@ interface Props {
 
 export default function ClientDetail({ client, projects }: Props) {
   const router = useRouter()
+  const [copied, setCopied] = useState(false)
+  const [token, setToken] = useState(client.portal_token)
+  const [isPending, startTransition] = useTransition()
 
   const initials = client.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
+  function copyPortalLink(t?: string) {
+    const tok = t ?? token
+    if (!tok) return
+    const url = `${window.location.origin}/portal/${tok}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
+
+  function handleGenerateToken() {
+    startTransition(async () => {
+      const result = await generatePortalTokenAction(client.id)
+      if (result?.success && result.token) {
+        setToken(result.token)
+        copyPortalLink(result.token)
+      }
+    })
+  }
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       {/* Voltar */}
       <button
         onClick={() => router.back()}
@@ -79,13 +105,24 @@ export default function ClientDetail({ client, projects }: Props) {
             </div>
           </div>
 
-          <button style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-            background: 'transparent', border: '1px solid var(--n200)',
-            color: 'var(--n700)', cursor: 'pointer',
-          }}>
-            <Edit2 size={13} /> Editar
+          <button
+            onClick={token ? () => copyPortalLink() : handleGenerateToken}
+            disabled={isPending}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+              background: copied ? 'var(--g50)' : 'transparent',
+              border: `1px solid ${copied ? 'var(--g300)' : 'var(--n200)'}`,
+              color: copied ? 'var(--g700)' : 'var(--n700)',
+              cursor: isPending ? 'not-allowed' : 'pointer',
+              opacity: isPending ? .7 : 1,
+              transition: 'all .2s',
+            }}
+          >
+            {isPending
+              ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+              : copied ? <Check size={13} /> : <Share2 size={13} />}
+            {isPending ? 'Gerando...' : copied ? 'Link copiado!' : 'Compartilhar portal'}
           </button>
         </div>
 
