@@ -6,9 +6,10 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, FolderOpen, Users, ListTodo,
   FileText, TrendingUp, Settings, ChevronLeft,
-  Bell, Search, LogOut, Leaf,
+  Search, LogOut, Leaf,
 } from 'lucide-react'
 import { logoutAction } from '@/lib/auth/actions'
+import NotificationsBell from '@/components/layout/NotificationsBell'
 
 interface NavItem {
   href:   string
@@ -304,23 +305,7 @@ export default function AppShell({ children, userName, orgName, userRole }: AppS
               }}>⌘K</span>
             </div>
 
-            {/* Notificações */}
-            <div style={{
-              width: 32, height: 32,
-              borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: 'var(--n500)',
-              position: 'relative',
-            }}>
-              <Bell size={16} />
-              <span style={{
-                position: 'absolute', top: 5, right: 5,
-                width: 7, height: 7,
-                borderRadius: '50%',
-                background: 'var(--red)',
-                border: '1.5px solid #fff',
-              }} />
-            </div>
+            <NotificationsBell />
           </div>
         </header>
 
