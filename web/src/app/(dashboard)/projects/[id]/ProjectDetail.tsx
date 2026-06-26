@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, FileText,
-  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil, FileDown,
+  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil, FileDown, Eye, EyeOff,
 } from 'lucide-react'
 import EditProjectModal from './EditProjectModal'
 import { formatDate } from '@/lib/format'
@@ -15,6 +15,7 @@ import {
   deleteCondicionanteAction,
   uploadProjectDocumentAction,
   deleteProjectDocumentAction,
+  toggleDocumentVisibilityAction,
 } from '@/lib/projects/actions'
 import type { Project, Condicionante } from '@/types'
 
@@ -551,6 +552,11 @@ function DocumentsTab({ projectId, docs, setDocs, startTransition }: {
     startTransition(() => { deleteProjectDocumentAction(docId, storagePath, projectId) })
   }
 
+  function handleToggleVisibility(docId: string, current: boolean) {
+    setDocs(prev => prev.map(d => d.id === docId ? { ...d, is_visible_to_client: !current } : d))
+    startTransition(() => { toggleDocumentVisibilityAction(docId, projectId, !current) })
+  }
+
   return (
     <div>
       {/* Upload toolbar */}
@@ -615,7 +621,22 @@ function DocumentsTab({ projectId, docs, setDocs, startTransition }: {
                   {CATEGORY_LABEL[doc.category] ?? 'Outro'} · {formatSize(doc.size_bytes)} · {formatDate(doc.created_at)}
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                {/* Toggle visível ao cliente */}
+                <button
+                  onClick={() => handleToggleVisibility(doc.id, doc.is_visible_to_client)}
+                  title={doc.is_visible_to_client ? 'Visível ao cliente — clique para ocultar' : 'Oculto ao cliente — clique para tornar visível'}
+                  style={{
+                    width: 30, height: 30, borderRadius: 7, cursor: 'pointer',
+                    border: `1px solid ${doc.is_visible_to_client ? 'var(--g200)' : 'var(--n200)'}`,
+                    background: doc.is_visible_to_client ? 'var(--g50)' : 'var(--n50)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: doc.is_visible_to_client ? 'var(--g600)' : 'var(--n400)',
+                    transition: 'all .15s',
+                  }}
+                >
+                  {doc.is_visible_to_client ? <Eye size={13} /> : <EyeOff size={13} />}
+                </button>
                 <a
                   href={`/api/documents/download?path=${encodeURIComponent(doc.storage_path)}`}
                   target="_blank" rel="noreferrer"

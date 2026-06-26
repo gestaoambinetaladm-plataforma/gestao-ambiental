@@ -222,6 +222,22 @@ export async function deleteProjectDocumentAction(docId: string, storagePath: st
   return result
 }
 
+export async function toggleDocumentVisibilityAction(docId: string, projectId: string, visible: boolean) {
+  const profile = await getCurrentUserData()
+  if (!profile) return { error: 'Não autorizado' }
+
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('documents')
+    .update({ is_visible_to_client: visible })
+    .eq('id', docId)
+    .eq('organization_id', profile.organization_id)
+
+  if (error) return { error: 'Erro ao atualizar visibilidade.' }
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
 // Gera checklist a partir do template padrão
 async function generateAutoChecklist(projectId: string, licenseType: string, orgId: string) {
   const supabase = await createClient()

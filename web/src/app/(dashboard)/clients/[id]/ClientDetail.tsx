@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
   ArrowLeft, Phone, Mail,
-  MapPin, FileText, FolderOpen, Share2, Check, Loader2,
+  MapPin, FileText, FolderOpen, Share2, Check, Loader2, Edit2,
 } from 'lucide-react'
 import { formatDocument, formatPhone, formatDate } from '@/lib/format'
 import { generatePortalTokenAction } from '@/lib/clients/actions'
+import EditClientModal from './EditClientModal'
 import type { Client, Project } from '@/types'
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; color: string }> = {
@@ -29,6 +30,7 @@ export default function ClientDetail({ client, projects }: Props) {
   const router = useRouter()
   const [copied, setCopied] = useState(false)
   const [token, setToken] = useState(client.portal_token)
+  const [editModal, setEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const initials = client.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
@@ -104,6 +106,18 @@ export default function ClientDetail({ client, projects }: Props) {
               )}
             </div>
           </div>
+
+          <button
+            onClick={() => setEditModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+              background: 'transparent', border: '1px solid var(--n200)',
+              color: 'var(--n700)', cursor: 'pointer',
+            }}
+          >
+            <Edit2 size={13} /> Editar
+          </button>
 
           <button
             onClick={token ? () => copyPortalLink() : handleGenerateToken}
@@ -244,6 +258,10 @@ export default function ClientDetail({ client, projects }: Props) {
           })
         )}
       </div>
+
+      {editModal && (
+        <EditClientModal client={client} onClose={() => setEditModal(false)} />
+      )}
     </div>
   )
 }

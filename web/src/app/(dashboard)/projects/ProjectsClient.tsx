@@ -33,17 +33,22 @@ const LICENSE_COLORS: Record<string, string> = {
   ADA: '#b45309', OTHER: '#78716c',
 }
 
+const LICENSE_TYPES = ['LP','LI','LO','LAS','LAR','LUP','AAF','AUF','ADA','OTHER']
+
 export default function ProjectsClient({ projects, activeStatus }: { projects: Project[]; activeStatus: string }) {
   const router = useRouter()
-  const [modal, setModal] = useState(false)
-  const [search, setSearch] = useState('')
+  const [modal,       setModal]       = useState(false)
+  const [search,      setSearch]      = useState('')
+  const [licFilter,   setLicFilter]   = useState('')
 
-  const filtered = search
-    ? projects.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.protocol_number ?? '').toLowerCase().includes(search.toLowerCase())
-      )
-    : projects
+  const filtered = projects.filter(p => {
+    const matchSearch = !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.protocol_number ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      ((p as any).clients?.name ?? '').toLowerCase().includes(search.toLowerCase())
+    const matchLic = !licFilter || p.license_type === licFilter
+    return matchSearch && matchLic
+  })
 
   return (
     <div>
@@ -87,6 +92,41 @@ export default function ProjectsClient({ projects, activeStatus }: { projects: P
         ))}
       </div>
 
+      {/* Filtro por tipo de licença */}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 14 }}>
+        <button
+          onClick={() => setLicFilter('')}
+          style={{
+            padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+            fontFamily: 'monospace', cursor: 'pointer',
+            border: `1px solid ${!licFilter ? 'var(--n400)' : 'transparent'}`,
+            background: !licFilter ? 'var(--n100)' : 'transparent',
+            color: !licFilter ? 'var(--n700)' : 'var(--n500)',
+          }}
+        >
+          Todos
+        </button>
+        {LICENSE_TYPES.map(lt => {
+          const color = LICENSE_COLORS[lt] ?? '#78716c'
+          const active = licFilter === lt
+          return (
+            <button
+              key={lt}
+              onClick={() => setLicFilter(active ? '' : lt)}
+              style={{
+                padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                fontFamily: 'monospace', cursor: 'pointer',
+                border: `1px solid ${active ? color : 'transparent'}`,
+                background: active ? color + '18' : 'transparent',
+                color: active ? color : 'var(--n500)',
+              }}
+            >
+              {lt}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Busca */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
@@ -97,7 +137,7 @@ export default function ProjectsClient({ projects, activeStatus }: { projects: P
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar projeto ou protocolo..."
+          placeholder="Buscar por projeto, protocolo ou cliente..."
           style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, background: 'transparent' }}
         />
       </div>
