@@ -3,25 +3,71 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Verde ─────────────────────────────── */
+  --g900: #071a0e;
+  --g800: #0d3019;
+  --g700: #145226;
+  --g600: #1d7035;
+  --g500: #28944a;
+  --g400: #3db865;
+  --g300: #72d48f;
+  --g200: #b0e8c0;
+  --g100: #def2e5;
+  --g50:  #f0faf4;
+
+  /* ── Neutro ─────────────────────────────── */
+  --n900: #1c1917;
+  --n800: #292524;
+  --n700: #44403c;
+  --n600: #57534e;
+  --n500: #78716c;
+  --n400: #a8a29e;
+  --n300: #d6d3d1;
+  --n200: #e7e5e4;
+  --n150: #f0eeed;
+  --n100: #f5f4f3;
+  --n50:  #fafaf9;
+
+  /* ── Semântico ──────────────────────────── */
+  --red:      #dc2626;
+  --red-bg:   #fff1f1;
+  --red-b:    #fecaca;
+  --amber:    #d97706;
+  --amber-bg: #fffbeb;
+  --amber-b:  #fde68a;
+  --blue:     #2563eb;
+  --blue-bg:  #eff6ff;
+  --blue-b:   #bfdbfe;
+  --purple:   #7c3aed;
+  --purple-bg:#f5f3ff;
+
+  /* ── Layout ─────────────────────────────── */
+  --sb:  248px;
+  --hh:  54px;
+
+  /* ── Sombras ─────────────────────────────── */
+  --sh:  0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --shm: 0 4px 14px rgba(0,0,0,.09), 0 2px 6px rgba(0,0,0,.05);
+  --shl: 0 8px 28px rgba(0,0,0,.12), 0 4px 10px rgba(0,0,0,.07);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--n100);
+  color: var(--n900);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
+* { box-sizing: border-box; }
+
+/* Scrollbar global */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: var(--n300); border-radius: 2px; }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .font-sora { font-family: 'Sora', sans-serif; }
+  .font-mono-code { font-family: 'JetBrains Mono', monospace; }
 }
