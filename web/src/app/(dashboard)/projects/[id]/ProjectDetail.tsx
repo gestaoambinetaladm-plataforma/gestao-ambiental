@@ -4,8 +4,9 @@ import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, FileText,
-  Calendar, Plus, Trash2, Check, X, Upload, Download,
+  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil,
 } from 'lucide-react'
+import EditProjectModal from './EditProjectModal'
 import { formatDate } from '@/lib/format'
 import {
   toggleChecklistItemAction,
@@ -55,16 +56,18 @@ interface Props {
   condicionantes: Condicionante[]
   checklist:      any[]
   documents:      any[]
+  clients:        any[]
 }
 
 const TABS = ['Visão Geral', 'Checklist', 'Condicionantes', 'Documentos']
 
-export default function ProjectDetail({ project, condicionantes: initialConds, checklist, documents: initialDocs }: Props) {
+export default function ProjectDetail({ project, condicionantes: initialConds, checklist, documents: initialDocs, clients }: Props) {
   const router = useRouter()
-  const [tab,   setTab]   = useState(0)
-  const [items, setItems] = useState(checklist)
-  const [conds, setConds] = useState(initialConds)
-  const [docs,  setDocs]  = useState(initialDocs)
+  const [tab,        setTab]        = useState(0)
+  const [items,      setItems]      = useState(checklist)
+  const [conds,      setConds]      = useState(initialConds)
+  const [docs,       setDocs]       = useState(initialDocs)
+  const [editModal,  setEditModal]  = useState(false)
   const [, startTransition] = useTransition()
 
   const st = STATUS_STYLE[project.status] ?? STATUS_STYLE.draft
@@ -81,12 +84,25 @@ export default function ProjectDetail({ project, condicionantes: initialConds, c
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      <button onClick={() => router.back()} style={{
-        display: 'flex', alignItems: 'center', gap: 6, background: 'none',
-        border: 'none', cursor: 'pointer', color: 'var(--n500)', fontSize: 13, marginBottom: 18, padding: 0,
-      }}>
-        <ArrowLeft size={15} /> Voltar para projetos
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+        <button onClick={() => router.back()} style={{
+          display: 'flex', alignItems: 'center', gap: 6, background: 'none',
+          border: 'none', cursor: 'pointer', color: 'var(--n500)', fontSize: 13, padding: 0,
+        }}>
+          <ArrowLeft size={15} /> Voltar para projetos
+        </button>
+        <button
+          onClick={() => setEditModal(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+            background: '#fff', border: '1px solid var(--n200)',
+            color: 'var(--n700)', cursor: 'pointer',
+          }}
+        >
+          <Pencil size={14} /> Editar projeto
+        </button>
+      </div>
 
       {/* Header */}
       <div style={{
@@ -258,6 +274,14 @@ export default function ProjectDetail({ project, condicionantes: initialConds, c
           docs={docs}
           setDocs={setDocs}
           startTransition={startTransition}
+        />
+      )}
+
+      {editModal && (
+        <EditProjectModal
+          project={project}
+          clients={clients}
+          onClose={() => setEditModal(false)}
         />
       )}
     </div>
