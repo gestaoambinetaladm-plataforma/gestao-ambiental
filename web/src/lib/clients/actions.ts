@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUserData } from '@/lib/org/queries'
 import { z } from 'zod'
@@ -47,6 +48,23 @@ export async function createClientAction(formData: FormData) {
 
   revalidatePath('/clients')
   return { success: true, id: data.id }
+}
+
+export async function deleteClientAction(clientId: string) {
+  const profile = await getCurrentUserData()
+  if (!profile) return { error: 'Não autorizado' }
+
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('clients')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', clientId)
+    .eq('organization_id', profile.organization_id)
+
+  if (error) return { error: 'Erro ao excluir cliente.' }
+
+  revalidatePath('/clients')
+  redirect('/clients')
 }
 
 export async function generatePortalTokenAction(clientId: string) {

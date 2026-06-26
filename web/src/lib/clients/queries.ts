@@ -10,6 +10,7 @@ export async function getClients(search?: string) {
     .from('clients')
     .select('*')
     .eq('organization_id', profile.organization_id)
+    .is('deleted_at', null)
     .order('name', { ascending: true })
 
   if (search) {
@@ -30,6 +31,7 @@ export async function getClientById(id: string) {
     .select('*')
     .eq('id', id)
     .eq('organization_id', profile.organization_id)
+    .is('deleted_at', null)
     .single()
 
   return data

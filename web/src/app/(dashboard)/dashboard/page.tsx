@@ -1,6 +1,6 @@
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { getCurrentUserData } from '@/lib/org/queries'
-import { FolderOpen, Users, TrendingUp, ListTodo, AlertTriangle, Clock } from 'lucide-react'
+import { FolderOpen, Users, TrendingUp, ListTodo, AlertTriangle, Clock, CheckCircle2, Circle } from 'lucide-react'
 import Link from 'next/link'
 
 async function getDashboardData() {
@@ -74,6 +74,53 @@ export default async function DashboardPage() {
           Aqui está um resumo do seu dia
         </p>
       </div>
+
+      {/* Onboarding — só aparece para novos usuários sem projetos nem clientes */}
+      {data.totalProjects === 0 && data.totalClients === 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+          border: '1px solid var(--g200)', borderRadius: 16,
+          padding: '28px 32px', marginBottom: 24,
+        }}>
+          <h3 style={{ fontFamily: 'var(--font-sora)', fontWeight: 700, fontSize: 16, color: 'var(--g800)', marginBottom: 6 }}>
+            Bem-vindo ao Gestão Ambiental!
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--g700)', marginBottom: 22, lineHeight: 1.6 }}>
+            Siga os passos abaixo para configurar sua primeira licença ambiental.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { step: 1, label: 'Cadastre seu primeiro cliente', sub: 'Pessoa física ou jurídica que contratou o serviço', href: '/clients', done: false },
+              { step: 2, label: 'Crie um projeto de licenciamento', sub: 'Associe ao cliente e defina o tipo de licença', href: '/projects', done: false },
+              { step: 3, label: 'Adicione as condicionantes da licença', sub: 'Prazos e obrigações que precisam ser acompanhados', href: '/projects', done: false },
+              { step: 4, label: 'Configure sua equipe', sub: 'Convide membros e defina papéis de acesso', href: '/settings', done: false },
+            ].map(item => (
+              <Link key={item.step} href={item.href} style={{ textDecoration: 'none' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  background: '#fff', borderRadius: 10, padding: '12px 16px',
+                  border: '1px solid var(--g100)',
+                  transition: 'box-shadow .15s',
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                    background: 'var(--g50)', border: '2px solid var(--g200)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 700, color: 'var(--g600)',
+                  }}>
+                    {item.step}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--n800)' }}>{item.label}</p>
+                    <p style={{ fontSize: 11, color: 'var(--n500)', marginTop: 1 }}>{item.sub}</p>
+                  </div>
+                  <span style={{ fontSize: 18, color: 'var(--g400)' }}>→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>

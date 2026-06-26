@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, Circle, AlertTriangle, FileText,
-  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil, FileDown, Eye, EyeOff,
+  Calendar, Plus, Trash2, Check, X, Upload, Download, Pencil, FileDown, Eye, EyeOff, OctagonX,
 } from 'lucide-react'
 import EditProjectModal from './EditProjectModal'
 import { formatDate } from '@/lib/format'
@@ -16,6 +16,7 @@ import {
   uploadProjectDocumentAction,
   deleteProjectDocumentAction,
   toggleDocumentVisibilityAction,
+  deleteProjectAction,
 } from '@/lib/projects/actions'
 import type { Project, Condicionante } from '@/types'
 
@@ -58,11 +59,12 @@ interface Props {
   checklist:      any[]
   documents:      any[]
   clients:        any[]
+  history:        any[]
 }
 
-const TABS = ['Visão Geral', 'Checklist', 'Condicionantes', 'Documentos']
+const TABS = ['Visão Geral', 'Checklist', 'Condicionantes', 'Documentos', 'Histórico']
 
-export default function ProjectDetail({ project, condicionantes: initialConds, checklist, documents: initialDocs, clients }: Props) {
+export default function ProjectDetail({ project, condicionantes: initialConds, checklist, documents: initialDocs, clients, history }: Props) {
   const router = useRouter()
   const [tab,        setTab]        = useState(0)
   const [items,      setItems]      = useState(checklist)
@@ -115,6 +117,21 @@ export default function ProjectDetail({ project, condicionantes: initialConds, c
             }}
           >
             <Pencil size={14} /> Editar projeto
+          </button>
+          <button
+            onClick={() => {
+              if (confirm(`Excluir o projeto "${project.name}"? Esta ação não pode ser desfeita.`)) {
+                deleteProjectAction(project.id)
+              }
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              background: 'var(--red-bg)', border: '1px solid var(--red-b)',
+              color: 'var(--red)', cursor: 'pointer',
+            }}
+          >
+            <OctagonX size={14} /> Excluir
           </button>
         </div>
       </div>
@@ -292,6 +309,11 @@ export default function ProjectDetail({ project, condicionantes: initialConds, c
         />
       )}
 
+      {/* ── Histórico ── */}
+      {tab === 4 && (
+        <HistoryTab history={history} />
+      )}
+
       {editModal && (
         <EditProjectModal
           project={project}
@@ -350,17 +372,33 @@ function CondicionantesTab({ projectId, conds, setConds, startTransition }: {
           {conds.length} condicionante{conds.length !== 1 ? 's' : ''} ·{' '}
           {conds.filter(c => c.status === 'fulfilled').length} cumpridas
         </p>
-        <button
-          onClick={() => setShowForm(s => !s)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'var(--g600)', color: '#fff',
-            border: 'none', borderRadius: 8, padding: '7px 13px',
-            fontSize: 13, fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          <Plus size={14} /> Adicionar
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {conds.length > 0 && (
+            <a
+              href={`/api/reports/condicionantes/${projectId}`}
+              download
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 13px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                background: '#fff', border: '1px solid var(--n200)',
+                color: 'var(--n700)', cursor: 'pointer', textDecoration: 'none',
+              }}
+            >
+              <FileDown size={14} /> Exportar PDF
+            </a>
+          )}
+          <button
+            onClick={() => setShowForm(s => !s)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'var(--g600)', color: '#fff',
+              border: 'none', borderRadius: 8, padding: '7px 13px',
+              fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            <Plus size={14} /> Adicionar
+          </button>
+        </div>
       </div>
 
       {/* Formulário */}
@@ -665,6 +703,84 @@ function DocumentsTab({ projectId, docs, setDocs, startTransition }: {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Histórico ────────────────────────────────────────────────────────────────
+
+const ACTION_LABEL: Record<string, { label: string; color: string; dot: string }> = {
+  project_updated:       { label: 'Projeto editado',             color: '#1d4ed8', dot: '#3b82f6' },
+  condicionante_created: { label: 'Condicionante adicionada',    color: '#15803d', dot: '#22c55e' },
+  condicionante_status:  { label: 'Status de condicionante',     color: '#b45309', dot: '#f59e0b' },
+}
+
+function HistoryTab({ history }: { history: any[] }) {
+  if (history.length === 0) {
+    return (
+      <div style={{
+        background: '#fff', border: '1px solid var(--n200)', borderRadius: 14,
+        padding: '40px 24px', textAlign: 'center',
+      }}>
+        <p style={{ color: 'var(--n400)', fontSize: 13 }}>Nenhum registro no histórico ainda.</p>
+        <p style={{ color: 'var(--n300)', fontSize: 12, marginTop: 4 }}>
+          As alterações feitas no projeto aparecerão aqui.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--n200)', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--n100)' }}>
+        <span style={{ fontFamily: 'var(--font-sora)', fontWeight: 600, fontSize: 13.5 }}>
+          Histórico de alterações
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--n400)', marginLeft: 8 }}>{history.length} registros</span>
+      </div>
+      <div style={{ padding: '8px 0' }}>
+        {history.map((entry, i) => {
+          const meta = ACTION_LABEL[entry.action] ?? { label: entry.action, color: '#64748b', dot: '#94a3b8' }
+          const date = new Date(entry.created_at)
+          const dateStr = date.toLocaleDateString('pt-BR')
+          const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+          return (
+            <div key={entry.id} style={{
+              display: 'flex', gap: 14, padding: '12px 20px',
+              borderBottom: i < history.length - 1 ? '1px solid var(--n100)' : 'none',
+            }}>
+              {/* Dot */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: meta.dot, flexShrink: 0,
+                }} />
+                {i < history.length - 1 && (
+                  <div style={{ flex: 1, width: 1, background: 'var(--n150)', marginTop: 4 }} />
+                )}
+              </div>
+              {/* Conteúdo */}
+              <div style={{ flex: 1, paddingBottom: i < history.length - 1 ? 8 : 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 999,
+                    background: meta.dot + '20', color: meta.color,
+                  }}>
+                    {meta.label}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--n700)', marginBottom: 3 }}>
+                  {entry.description}
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--n400)' }}>
+                  {dateStr} às {timeStr}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

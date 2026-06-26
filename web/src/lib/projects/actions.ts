@@ -6,6 +6,27 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUserData } from '@/lib/org/queries'
 import { z } from 'zod'
 
+// ─── Helper: registrar histórico ─────────────────────────────────────────────
+
+async function logHistory(
+  supabase: any,
+  projectId: string,
+  orgId: string,
+  userId: string,
+  userName: string,
+  action: string,
+  description: string,
+) {
+  await supabase.from('project_history').insert({
+    project_id: projectId,
+    organization_id: orgId,
+    user_id: userId,
+    user_name: userName,
+    action,
+    description,
+  })
+}
+
 const projectSchema = z.object({
   client_id:             z.string().uuid('Cliente inválido'),
   name:                  z.string().min(2, 'Nome do projeto obrigatório'),
@@ -92,6 +113,9 @@ export async function updateProjectAction(id: string, formData: FormData) {
 
   if (error) return { error: 'Erro ao atualizar projeto.' }
 
+  await logHistory(supabase, id, profile.organization_id, profile.id, profile.name,
+    'project_updated', `Projeto editado por ${profile.name}`)
+
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
   return { success: true }
@@ -167,6 +191,12 @@ export async function createCondicionanteAction(projectId: string, formData: For
   })
 
   if (error) return { error: error.message }
+
+  const title = String(formData.get('title') ?? '')
+  const supabase2 = await createClient()
+  await logHistory(supabase2, projectId, profile.organization_id, profile.id, profile.name,
+    'condicionante_created', `Condicionante adicionada: "${title}"`)
+
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -187,6 +217,14 @@ export async function updateCondicionanteStatusAction(
     .eq('organization_id', profile.organization_id)
 
   if (error) return { error: error.message }
+
+  const STATUS_LABELS: Record<string, string> = {
+    pending: 'Pendente', in_progress: 'Em andamento',
+    fulfilled: 'Cumprida', overdue: 'Vencida', waived: 'Dispensada',
+  }
+  await logHistory(supabase, projectId, profile.organization_id, profile.id, profile.name,
+    'condicionante_status', `Status de condicionante alterado para "${STATUS_LABELS[status] ?? status}"`)
+
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -203,6 +241,25 @@ export async function deleteCondicionanteAction(condId: string, projectId: strin
 
   if (error) return { error: error.message }
   revalidatePath(`/projects/${projectId}`)
+}
+
+// ─── Soft-delete projeto ─────────────────────────────────────────────────────
+
+export async function deleteProjectAction(projectId: string) {
+  const profile = await getCurrentUserData()
+  if (!profile) return { error: 'Não autorizado' }
+
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('projects')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', projectId)
+    .eq('organization_id', profile.organization_id)
+
+  if (error) return { error: 'Erro ao excluir projeto.' }
+
+  revalidatePath('/projects')
+  redirect('/projects')
 }
 
 // ─── Documentos do projeto ────────────────────────────────────────────────────

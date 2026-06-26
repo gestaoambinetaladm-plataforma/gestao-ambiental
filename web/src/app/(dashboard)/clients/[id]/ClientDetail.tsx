@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
   ArrowLeft, Phone, Mail,
-  MapPin, FileText, FolderOpen, Share2, Check, Loader2, Edit2,
+  MapPin, FileText, FolderOpen, Share2, Check, Loader2, Edit2, OctagonX,
 } from 'lucide-react'
 import { formatDocument, formatPhone, formatDate } from '@/lib/format'
-import { generatePortalTokenAction } from '@/lib/clients/actions'
+import { generatePortalTokenAction, deleteClientAction } from '@/lib/clients/actions'
 import EditClientModal from './EditClientModal'
 import type { Client, Project } from '@/types'
 
@@ -107,17 +107,34 @@ export default function ClientDetail({ client, projects }: Props) {
             </div>
           </div>
 
-          <button
-            onClick={() => setEditModal(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
-              background: 'transparent', border: '1px solid var(--n200)',
-              color: 'var(--n700)', cursor: 'pointer',
-            }}
-          >
-            <Edit2 size={13} /> Editar
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => setEditModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                background: 'transparent', border: '1px solid var(--n200)',
+                color: 'var(--n700)', cursor: 'pointer',
+              }}
+            >
+              <Edit2 size={13} /> Editar
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`Excluir o cliente "${client.name}"? Os projetos vinculados não serão excluídos.`)) {
+                  deleteClientAction(client.id)
+                }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                background: 'var(--red-bg)', border: '1px solid var(--red-b)',
+                color: 'var(--red)', cursor: 'pointer',
+              }}
+            >
+              <OctagonX size={13} /> Excluir
+            </button>
+          </div>
 
           <button
             onClick={token ? () => copyPortalLink() : handleGenerateToken}

@@ -10,6 +10,7 @@ export async function getProjects(filters?: { status?: string; search?: string }
     .from('projects')
     .select('*, clients(id, name, type, document)')
     .eq('organization_id', profile.organization_id)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (filters?.status && filters.status !== 'all') {
@@ -64,6 +65,22 @@ export async function getProjectChecklist(projectId: string) {
     .eq('project_id', projectId)
     .eq('organization_id', profile.organization_id)
     .order('"order"', { ascending: true })
+
+  return data ?? []
+}
+
+export async function getProjectHistory(projectId: string) {
+  const supabase = await createClient()
+  const profile  = await getCurrentUserData()
+  if (!profile) return []
+
+  const { data } = await (supabase as any)
+    .from('project_history')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('organization_id', profile.organization_id)
+    .order('created_at', { ascending: false })
+    .limit(50)
 
   return data ?? []
 }
