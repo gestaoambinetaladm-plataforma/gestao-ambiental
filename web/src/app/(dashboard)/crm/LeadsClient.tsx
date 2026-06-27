@@ -5,7 +5,7 @@ import { Plus, Phone, Mail, Building2, Trash2, ChevronRight, X, Check } from 'lu
 import { updateLeadStageAction, deleteLeadAction, addLeadActivityAction } from '@/lib/leads/actions'
 import LeadModal from './LeadModal'
 
-const STAGES = [
+const DEFAULT_STAGES = [
   { value: 'new',           label: 'Novo',            color: '#64748b' },
   { value: 'contacted',     label: 'Contactado',      color: '#2563eb' },
   { value: 'proposal_sent', label: 'Proposta Enviada', color: '#7c3aed' },
@@ -27,7 +27,11 @@ function formatCurrency(v: number | null) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-export default function LeadsClient({ leads }: { leads: any[] }) {
+export default function LeadsClient({ leads, customStages }: { leads: any[]; customStages?: any[] }) {
+  const STAGES = (customStages && customStages.length > 0)
+    ? customStages.map((s: any) => ({ value: s.value, label: s.label, color: s.color }))
+    : DEFAULT_STAGES
+
   const [modal, setModal]         = useState(false)
   const [selectedLead, setSelectedLead] = useState<any>(null)
   const [, startTransition]       = useTransition()
@@ -209,7 +213,7 @@ export default function LeadsClient({ leads }: { leads: any[] }) {
 
       {modal && <LeadModal onClose={() => setModal(false)} />}
       {selectedLead && (
-        <LeadDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} />
+        <LeadDrawer lead={selectedLead} stages={STAGES} onClose={() => setSelectedLead(null)} />
       )}
     </div>
   )
@@ -225,7 +229,7 @@ const quickBtnStyle: React.CSSProperties = {
 
 // ─── Drawer de detalhe do lead ────────────────────────────────────────────────
 
-function LeadDrawer({ lead, onClose }: { lead: any; onClose: () => void }) {
+function LeadDrawer({ lead, stages: STAGES, onClose }: { lead: any; stages: { value: string; label: string; color: string }[]; onClose: () => void }) {
   const [actType, setActType] = useState('call')
   const [actText, setActText] = useState('')
   const [saving, setSaving]   = useState(false)

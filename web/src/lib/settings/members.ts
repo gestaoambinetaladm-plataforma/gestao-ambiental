@@ -14,3 +14,17 @@ export async function getOrgMembers() {
 
   return data ?? []
 }
+
+export async function getLeadStages() {
+  const supabase = await createClient()
+  const user = await getCurrentUserData()
+  if (!user) return []
+
+  const { data } = await (supabase as any)
+    .from('lead_stages')
+    .select('*')
+    .eq('organization_id', user.organization_id)
+    .order('position')
+
+  return data ?? []
+}

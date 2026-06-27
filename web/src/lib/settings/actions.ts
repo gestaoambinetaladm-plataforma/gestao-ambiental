@@ -5,6 +5,28 @@ import { createClient } from '@/lib/supabase/server'
 import { adminClient } from '@/lib/supabase/admin'
 import { getCurrentUserData } from '@/lib/org/queries'
 
+// ─── Perfil ──────────────────────────────────────────────────────────────────
+
+export async function updateProfileAction(formData: FormData) {
+  const user = await getCurrentUserData()
+  if (!user) return { error: 'Não autenticado' }
+
+  const name  = String(formData.get('name') ?? '').trim()
+  const phone = String(formData.get('phone') ?? '').trim() || null
+
+  if (!name) return { error: 'Nome é obrigatório' }
+
+  const supabase = await createClient()
+  const { error } = await (supabase as any)
+    .from('profiles')
+    .update({ name, phone })
+    .eq('id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/settings')
+  return { success: true }
+}
+
 // ─── Membros ──────────────────────────────────────────────────────────────────
 
 export async function inviteMemberAction(formData: FormData) {
@@ -185,6 +207,41 @@ export async function addTemplateItemAction(templateId: string, formData: FormDa
 
   if (error) return { error: error.message }
   revalidatePath('/settings')
+}
+
+// ─── Funil CRM (Lead Stages) ─────────────────────────────────────────────────
+
+export async function saveLeadStagesAction(stages: { value: string; label: string; color: string; position: number }[]) {
+  const user = await getCurrentUserData()
+  if (!user) return { error: 'Não autenticado' }
+
+  const supabase = await createClient()
+
+  // Remove todas as etapas atuais e insere as novas
+  await (supabase as any)
+    .from('lead_stages')
+    .delete()
+    .eq('organization_id', user.organization_id)
+
+  if (stages.length > 0) {
+    const rows = stages.map((s, i) => ({
+      organization_id: user.organization_id,
+      value: s.value,
+      label: s.label,
+      color: s.color,
+      position: i,
+    }))
+
+    const { error } = await (supabase as any)
+      .from('lead_stages')
+      .insert(rows)
+
+    if (error) return { error: error.message }
+  }
+
+  revalidatePath('/settings')
+  revalidatePath('/crm')
+  return { success: true }
 }
 
 export async function deleteTemplateItemAction(itemId: string) {

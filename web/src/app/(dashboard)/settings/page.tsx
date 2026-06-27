@@ -1,5 +1,5 @@
 import { getCurrentUserData } from '@/lib/org/queries'
-import { getOrgMembers } from '@/lib/settings/members'
+import { getOrgMembers, getLeadStages } from '@/lib/settings/members'
 import { createClient } from '@/lib/supabase/server'
 import SettingsClient from './SettingsClient'
 
@@ -17,9 +17,10 @@ export default async function SettingsPage() {
   const user = await getCurrentUserData()
   if (!user) return null
 
-  const [members, templates] = await Promise.all([
+  const [members, templates, leadStages] = await Promise.all([
     getOrgMembers(),
     getTemplates(user.organization_id),
+    getLeadStages(),
   ])
 
   return (
@@ -27,6 +28,7 @@ export default async function SettingsPage() {
       currentUser={user}
       members={members}
       templates={templates}
+      leadStages={leadStages}
     />
   )
 }

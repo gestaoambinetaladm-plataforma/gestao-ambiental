@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, ListChecks, User, Plus, Trash2, Star, StarOff, UserCheck, UserX, X, ChevronDown } from 'lucide-react'
+import { Users, ListChecks, User, Plus, Trash2, Star, StarOff, UserCheck, UserX, X, ChevronDown, GitBranch, GripVertical, Save, Pencil, ArrowUp, ArrowDown } from 'lucide-react'
 import {
   inviteMemberAction, updateMemberRoleAction, toggleMemberStatusAction,
   createTemplateAction, deleteTemplateAction, setTemplateDefaultAction,
   addTemplateItemAction, deleteTemplateItemAction,
+  updateProfileAction, saveLeadStagesAction,
 } from '@/lib/settings/actions'
 
 const ROLES: Record<string, string> = {
@@ -34,12 +35,13 @@ const LICENSE_TYPES = [
   { value: 'OTHER', label: 'Outros'                                      },
 ]
 
-type Tab = 'profile' | 'members' | 'templates'
+type Tab = 'profile' | 'members' | 'templates' | 'funnel'
 
-export default function SettingsClient({ currentUser, members, templates }: {
+export default function SettingsClient({ currentUser, members, templates, leadStages }: {
   currentUser: any
   members: any[]
   templates: any[]
+  leadStages: any[]
 }) {
   const [tab, setTab] = useState<Tab>('profile')
 
@@ -49,6 +51,7 @@ export default function SettingsClient({ currentUser, members, templates }: {
     { value: 'profile'   as Tab, label: 'Meu perfil',           icon: <User size={14} /> },
     { value: 'members'   as Tab, label: 'Equipe',               icon: <Users size={14} /> },
     { value: 'templates' as Tab, label: 'Templates de checklist', icon: <ListChecks size={14} /> },
+    { value: 'funnel'    as Tab, label: 'Funil CRM',            icon: <GitBranch size={14} /> },
   ]
 
   return (
@@ -82,6 +85,7 @@ export default function SettingsClient({ currentUser, members, templates }: {
       {tab === 'profile'   && <ProfileTab user={currentUser} />}
       {tab === 'members'   && <MembersTab members={members} currentUser={currentUser} isAdmin={isAdmin} />}
       {tab === 'templates' && <TemplatesTab templates={templates} />}
+      {tab === 'funnel'    && <FunnelTab leadStages={leadStages} />}
     </div>
   )
 }
@@ -90,13 +94,72 @@ export default function SettingsClient({ currentUser, members, templates }: {
 
 function ProfileTab({ user }: { user: any }) {
   const org = user.organizations
+  const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError]     = useState('')
+
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true); setError(''); setSuccess('')
+    const result = await updateProfileAction(new FormData(e.currentTarget))
+    setLoading(false)
+    if (result?.error) { setError(result.error); return }
+    setSuccess('Perfil atualizado!')
+    setEditing(false)
+    setTimeout(() => setSuccess(''), 3000)
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 760 }}>
       <Card title="Meu perfil">
-        <InfoRow label="Nome"     value={user.name} />
-        <InfoRow label="Função"   value={ROLES[user.role] ?? user.role} />
-        <InfoRow label="Status"   value={user.status === 'active' ? 'Ativo' : 'Inativo'} />
-        {user.phone && <InfoRow label="Telefone" value={user.phone} />}
+        {error && <Alert type="error" msg={error} onClose={() => setError('')} />}
+        {success && <Alert type="success" msg={success} onClose={() => setSuccess('')} />}
+
+        {!editing ? (
+          <>
+            <InfoRow label="Nome"     value={user.name} />
+            <InfoRow label="Função"   value={ROLES[user.role] ?? user.role} />
+            <InfoRow label="Status"   value={user.status === 'active' ? 'Ativo' : 'Inativo'} />
+            <InfoRow label="Telefone" value={user.phone || '—'} />
+            <div style={{ marginTop: 14 }}>
+              <button onClick={() => setEditing(true)} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                background: '#fff', border: '1px solid var(--n200)',
+                color: 'var(--n700)', cursor: 'pointer',
+              }}>
+                <Pencil size={13} /> Editar perfil
+              </button>
+            </div>
+          </>
+        ) : (
+          <form onSubmit={handleSave}>
+            <style>{`.pf input{width:100%;padding:8px 11px;border:1px solid var(--n200);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}.pf input:focus{border-color:var(--g400);}`}</style>
+            <div className="pf" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Nome *</label>
+                <input name="name" required defaultValue={user.name} />
+              </div>
+              <div>
+                <label style={labelStyle}>Telefone</label>
+                <input name="phone" defaultValue={user.phone ?? ''} placeholder="(11) 99999-0000" />
+              </div>
+              <div>
+                <label style={labelStyle}>Função</label>
+                <input disabled value={ROLES[user.role] ?? user.role} style={{ background: 'var(--n50)', color: 'var(--n500)' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button type="submit" disabled={loading} style={submitBtn}>
+                {loading ? 'Salvando...' : 'Salvar'}
+              </button>
+              <button type="button" onClick={() => setEditing(false)} style={cancelBtn}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
       </Card>
       <Card title="Organização">
         <InfoRow label="Nome"  value={org?.name ?? '-'} />
@@ -535,6 +598,256 @@ function TemplatesTab({ templates }: { templates: any[] }) {
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Aba: Funil CRM ──────────────────────────────────────────────────────────
+
+const DEFAULT_STAGES = [
+  { value: 'new',           label: 'Novo',             color: '#64748b' },
+  { value: 'contacted',     label: 'Contactado',       color: '#2563eb' },
+  { value: 'proposal_sent', label: 'Proposta Enviada', color: '#7c3aed' },
+  { value: 'negotiation',   label: 'Negociação',       color: '#d97706' },
+  { value: 'won',           label: 'Ganho',            color: '#16a34a' },
+  { value: 'lost',          label: 'Perdido',          color: '#dc2626' },
+]
+
+const COLOR_PALETTE = [
+  '#64748b', '#2563eb', '#7c3aed', '#d97706', '#16a34a', '#dc2626',
+  '#0891b2', '#db2777', '#ea580c', '#4f46e5', '#059669', '#9333ea',
+]
+
+function FunnelTab({ leadStages }: { leadStages: any[] }) {
+  const initial = leadStages.length > 0
+    ? leadStages.map(s => ({ value: s.value, label: s.label, color: s.color }))
+    : DEFAULT_STAGES.map(s => ({ ...s }))
+
+  const [stages, setStages] = useState(initial)
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError]     = useState('')
+  const [newLabel, setNewLabel] = useState('')
+  const [newColor, setNewColor] = useState('#64748b')
+
+  function moveStage(idx: number, dir: -1 | 1) {
+    const target = idx + dir
+    if (target < 0 || target >= stages.length) return
+    const copy = [...stages]
+    ;[copy[idx], copy[target]] = [copy[target], copy[idx]]
+    setStages(copy)
+  }
+
+  function removeStage(idx: number) {
+    if (stages.length <= 2) { setError('O funil precisa ter pelo menos 2 etapas.'); return }
+    setStages(stages.filter((_, i) => i !== idx))
+  }
+
+  function addStage() {
+    if (!newLabel.trim()) return
+    const value = newLabel.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    if (stages.some(s => s.value === value)) { setError('Já existe uma etapa com esse identificador.'); return }
+    setStages([...stages, { value, label: newLabel.trim(), color: newColor }])
+    setNewLabel('')
+    setNewColor('#64748b')
+  }
+
+  function updateStage(idx: number, field: 'label' | 'color', val: string) {
+    const copy = [...stages]
+    copy[idx] = { ...copy[idx], [field]: val }
+    setStages(copy)
+  }
+
+  async function handleSave() {
+    setLoading(true); setError(''); setSuccess('')
+    const payload = stages.map((s, i) => ({ ...s, position: i }))
+    const result = await saveLeadStagesAction(payload)
+    setLoading(false)
+    if (result?.error) { setError(result.error); return }
+    setSuccess('Funil salvo com sucesso!')
+    setTimeout(() => setSuccess(''), 3000)
+  }
+
+  function handleReset() {
+    if (!confirm('Restaurar etapas padrão? As etapas atuais serão substituídas.')) return
+    setStages(DEFAULT_STAGES.map(s => ({ ...s })))
+  }
+
+  const hasChanges = JSON.stringify(stages) !== JSON.stringify(initial)
+
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--n500)' }}>
+            Configure as etapas do funil de leads no CRM
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleReset} style={cancelBtn}>
+            Restaurar padrão
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading || !hasChanges}
+            style={{
+              ...submitBtn,
+              opacity: !hasChanges ? 0.5 : 1,
+              cursor: !hasChanges ? 'default' : 'pointer',
+            }}
+          >
+            <Save size={13} /> {loading ? 'Salvando...' : 'Salvar funil'}
+          </button>
+        </div>
+      </div>
+
+      {error && <Alert type="error" msg={error} onClose={() => setError('')} />}
+      {success && <Alert type="success" msg={success} onClose={() => setSuccess('')} />}
+
+      {/* Lista de etapas */}
+      <div style={{ background: '#fff', border: '1px solid var(--n200)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+        {stages.map((stage, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 16px',
+            borderBottom: i < stages.length - 1 ? '1px solid var(--n100)' : 'none',
+          }}>
+            {/* Posição */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+              <button
+                onClick={() => moveStage(i, -1)}
+                disabled={i === 0}
+                style={{ ...iconBtn, width: 22, height: 18, opacity: i === 0 ? 0.3 : 1 }}
+              >
+                <ArrowUp size={10} />
+              </button>
+              <button
+                onClick={() => moveStage(i, 1)}
+                disabled={i === stages.length - 1}
+                style={{ ...iconBtn, width: 22, height: 18, opacity: i === stages.length - 1 ? 0.3 : 1 }}
+              >
+                <ArrowDown size={10} />
+              </button>
+            </div>
+
+            {/* Cor */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: stage.color, cursor: 'pointer',
+                border: '2px solid #fff', boxShadow: '0 0 0 1px var(--n200)',
+              }} />
+              <input
+                type="color"
+                value={stage.color}
+                onChange={e => updateStage(i, 'color', e.target.value)}
+                style={{
+                  position: 'absolute', inset: 0,
+                  opacity: 0, cursor: 'pointer',
+                  width: '100%', height: '100%',
+                }}
+              />
+            </div>
+
+            {/* Nome */}
+            <input
+              value={stage.label}
+              onChange={e => updateStage(i, 'label', e.target.value)}
+              style={{
+                flex: 1, padding: '6px 10px', border: '1px solid var(--n200)',
+                borderRadius: 7, fontSize: 13, fontFamily: "'DM Sans', sans-serif",
+                outline: 'none', color: 'var(--n800)',
+              }}
+            />
+
+            {/* Identificador */}
+            <span style={{ fontSize: 10, color: 'var(--n400)', fontFamily: 'monospace', flexShrink: 0, width: 90, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {stage.value}
+            </span>
+
+            {/* Posição número */}
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: 'var(--n400)',
+              width: 20, textAlign: 'center', flexShrink: 0,
+            }}>
+              {i + 1}
+            </span>
+
+            {/* Remover */}
+            <button
+              onClick={() => removeStage(i)}
+              style={{ ...iconBtn, color: 'var(--red)', borderColor: 'var(--red-b)', background: 'var(--red-bg)' }}
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Adicionar nova etapa */}
+      <div style={{
+        background: 'var(--n50)', border: '1px solid var(--n200)',
+        borderRadius: 12, padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: newColor, cursor: 'pointer',
+            border: '2px solid #fff', boxShadow: '0 0 0 1px var(--n200)',
+          }} />
+          <input
+            type="color"
+            value={newColor}
+            onChange={e => setNewColor(e.target.value)}
+            style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+          />
+        </div>
+        <input
+          value={newLabel}
+          onChange={e => setNewLabel(e.target.value)}
+          placeholder="Nome da nova etapa..."
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addStage() } }}
+          style={{
+            flex: 1, padding: '7px 11px', border: '1px solid var(--n200)',
+            borderRadius: 8, fontSize: 13, fontFamily: "'DM Sans', sans-serif",
+            outline: 'none',
+          }}
+        />
+        <button
+          onClick={addStage}
+          disabled={!newLabel.trim()}
+          style={{
+            ...submitBtn,
+            padding: '7px 14px',
+            opacity: !newLabel.trim() ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}
+        >
+          <Plus size={13} /> Adicionar
+        </button>
+      </div>
+
+      {/* Preview */}
+      {stages.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--n500)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+            Pré-visualização
+          </p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {stages.map((s, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 12px', borderRadius: 999,
+                background: s.color + '18', border: `1.5px solid ${s.color}40`,
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color }} />
+                <span style={{ fontSize: 12, fontWeight: 500, color: s.color }}>{s.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
